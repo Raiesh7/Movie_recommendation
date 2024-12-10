@@ -1,0 +1,72 @@
+import tkinter as tk
+from tkinter import messagebox
+import csv
+# a function for loading the movie dataset into a list calles "movies"
+def load_movies(filename="movie_dataset.csv"):
+    movies = []
+    try:
+        with open(filename, newline='', encoding='utf-8') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                row['Rating'] = float(row['Rating'])
+                movies.append(row)
+    except FileNotFoundError:
+        messagebox.showerror("Error", "Dataset file not found.")
+    return movies
+
+# a function for recommendation of movies
+def recommend_movies():
+    selected_genres = [genre for genre, var in genre_vars.items() if var.get() == 1]
+    
+    if not selected_genres:
+        messagebox.showwarning("Warning", "Please select at least one genre.")
+        return
+    
+    filtered_movies = [movie for movie in movies if all(int(movie[genre]) == 1 for genre in selected_genres)]
+
+    if not filtered_movies:
+        filtered_movies = sorted(movies, key=lambda x: x['Rating'], reverse=True)[:5]
+        result_text = "No exact matches. Top 5 recommended movies:\n\n"
+    else:
+        filtered_movies.sort(key=lambda x: x['Rating'], reverse=True)
+        filtered_movies = filtered_movies[:5]
+        result_text = "Top 5 Recommended Movies:\n\n"
+    
+    result_box.delete("1.0", tk.END)
+    if filtered_movies:
+        top_movie = filtered_movies[0]
+        result_text += f"Top Pick: {top_movie['Title']} ({top_movie['Release Year']}) - Rating: {top_movie['Rating']}\n\n"
+        for movie in filtered_movies:
+            result_text += f"{movie['Title']} ({movie['Release Year']}) - Rating: {movie['Rating']}\n"
+    else:
+        result_text += "No movies found."
+    
+    result_box.insert(tk.END, result_text)
+
+# a function for clearing the text box i,e the output box 
+def clear_selections():
+    for var in genre_vars.values():
+        var.set(0)
+    result_box.delete("1.0", tk.END)
+
+# creating the gui using tkinter
+root = tk.Tk()
+root.title("Movie Recommendation System")
+root.geometry("500x600")
+
+tk.Label(root, text="Select Your Favourite Genres: ", font=("Arial", 16, "bold")).pack(pady=10)
+
+genres = ["Action", "Romance", "Sci-Fi", "Comedy", "Drama","Animation"]
+genre_vars = {genre: tk.IntVar() for genre in genres}
+
+for genre, var in genre_vars.items():
+    tk.Checkbutton(root, text=genre, variable=var, font=("Arial", 10)).pack(anchor='w', padx=20)
+
+tk.Button(root, text="Recommend", command=recommend_movies, font=("Arial", 12), width=12).pack(pady=10)
+tk.Button(root, text="Clear", command=clear_selections, font=("Arial", 12), width=12).pack(pady=5)
+
+result_box = tk.Text(root, width=50, height=15, font=("Arial", 10))
+result_box.pack(pady=10)
+
+movies = load_movies()
+root.mainloop()
